@@ -73,9 +73,14 @@ function TodoApp() {
 
   function toggleTodo(id) {
     const updated = todos.map(todo => 
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      todo.id === id 
+        ? { ...todo, completed: !todo.completed }
+        : todo
     );
-    saveTodos(updated);
+    // Ensure we're not triggering unnecessary updates
+    if (JSON.stringify(todos) !== JSON.stringify(updated)) {
+      saveTodos(updated);
+    }
   }
 
   function deleteTodo(id) {
