@@ -1,61 +1,29 @@
 function TodoItem({ todo, toggleTodo, deleteTodo }) {
-  return jsx('li', {
-    className: `todo-item ${todo.completed ? 'completed' : ''}`
-  }, [
+  return jsx('li', {}, [
+    jsx('input', {
+      type: 'checkbox',
+      className: 'toggle',
+      checked: todo.completed,
+      onchange: () => toggleTodo(todo.id)
+    }),
     jsx('div', { className: 'view' }, [
-      jsx('input', {
-        type: 'checkbox',
-        className: 'toggle',
-        checked: todo.completed,
-        onchange: () => toggleTodo(todo.id)
-      }),
-      jsx('label', { className: 'label' }, todo.text),
+      jsx('label', {}, todo.text),
       jsx('button', {
         className: 'destroy',
         onclick: () => deleteTodo(todo.id)
-      }, )
+      })
     ])
   ]);
 }
 
 function TodoApp() {
-  // Simple initialization first
+  // Simple initialization without localStorage
   const [todos, setTodos] = useState([]);
   const [input, setInput] = useState('');
   
   // Use router instead of filter state
   const { route, navigate, getParams } = useRouter();
   const filter = getParams(); // Get current filter from URL
-
-  // Load from localStorage on first render using useEffect
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('todos');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setTodos(parsed);
-        }
-      }
-    } catch (e) {
-      console.error('Error loading todos:', e);
-    }
-  }, []);
-
-  function saveTodos(newTodos) {
-    try {
-      if (Array.isArray(newTodos)) {
-        localStorage.setItem('todos', JSON.stringify(newTodos));
-        setTodos(newTodos);
-      } else {
-        console.error('saveTodos: newTodos is not an array', newTodos);
-        setTodos([]);
-      }
-    } catch (e) {
-      console.error('Error saving todos:', e);
-      setTodos(newTodos);
-    }
-  }
 
   function addTodo() {
     if (!input.trim()) return;
@@ -66,8 +34,7 @@ function TodoApp() {
       completed: false
     };
     
-    const newTodos = [...todos, newTodo];
-    saveTodos(newTodos);
+    setTodos([...todos, newTodo]);
     setInput('');
   }
 
@@ -77,26 +44,23 @@ function TodoApp() {
         ? { ...todo, completed: !todo.completed }
         : todo
     );
-    // Ensure we're not triggering unnecessary updates
-    if (JSON.stringify(todos) !== JSON.stringify(updated)) {
-      saveTodos(updated);
-    }
+    setTodos(updated);
   }
 
   function deleteTodo(id) {
     const filtered = todos.filter(todo => todo.id !== id);
-    saveTodos(filtered);
+    setTodos(filtered);
   }
 
   function clearCompleted() {
     const filtered = todos.filter(todo => !todo.completed);
-    saveTodos(filtered);
+    setTodos(filtered);
   }
 
   function toggleAll() {
     const allCompleted = todos.every(todo => todo.completed);
     const updated = todos.map(todo => ({ ...todo, completed: !allCompleted }));
-    saveTodos(updated);
+    setTodos(updated);
   }
 
   // Filter todos based on current filter (with safety check)
@@ -186,7 +150,16 @@ function TodoApp() {
 }
 
 function App() {
-  return jsx('div', { id: 'root' }, jsx(TodoApp));
+  const { getParams } = useRouter();
+  const route = getParams();
+  
+  // Only show TodoApp for valid routes
+  if (['all', 'active', 'completed'].includes(route)) {
+    return jsx('div', { id: 'root' }, jsx(TodoApp));
+  }
+  
+  // Show NotFound for invalid routes
+  return jsx('div', { id: 'root' }, jsx(NotFound));
 }
 
 // Initial render
