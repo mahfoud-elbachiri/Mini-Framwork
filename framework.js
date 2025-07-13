@@ -62,6 +62,11 @@ const SimpleReact = (function() {
 
 
   function createElement(node) {
+    // Handle null, undefined, false, true
+    if (node === null || node === undefined || node === false || node === true) {
+      return document.createTextNode('');
+    }
+    
     if (typeof node === 'string' || typeof node === 'number') {
       return document.createTextNode(String(node));
     }
@@ -75,12 +80,21 @@ const SimpleReact = (function() {
         element.className = value;
       } else if (name === 'id') {
         element.id = value;
+      } else if (name === 'value' && element.tagName === 'INPUT') {
+      element.value = value;  // Direct property assignment
+      } else if (name === 'checked' && element.tagName === 'INPUT') {
+      element.checked = value;  // For checkboxes
       } else {
         element.setAttribute(name, value);
       }
     }
 
     for (let child of node.children.flat()) {
+      if (child === null || child === undefined || child === false || child === true) {
+        // Skip null, undefined, false, true
+        continue;
+      }
+      
       if (typeof child === 'string' || typeof child === 'number') {
         element.appendChild(document.createTextNode(String(child)));
       } else {
@@ -98,6 +112,13 @@ const SimpleReact = (function() {
 
   // virtual DOM diffing
   function diff(oldNode, newNode, element) {
+    // Handle null, undefined, false, true for both old and new nodes
+    if (oldNode === null || oldNode === undefined || oldNode === false || oldNode === true) {
+      oldNode = '';
+    }
+    if (newNode === null || newNode === undefined || newNode === false || newNode === true) {
+      newNode = '';
+    }
 
     if (!oldNode) {
       return createElement(newNode);
@@ -128,8 +149,13 @@ const SimpleReact = (function() {
     
     updateProps(element, oldNode.props, newNode.props);
     
-    const oldChildren = oldNode.children.flat();
-    const newChildren = newNode.children.flat();
+    // Filter out falsy values from children
+    const oldChildren = oldNode.children.flat().filter(child => 
+      child !== null && child !== undefined && child !== false && child !== true
+    );
+    const newChildren = newNode.children.flat().filter(child => 
+      child !== null && child !== undefined && child !== false && child !== true
+    );
     const maxLength = Math.max(oldChildren.length, newChildren.length);
     
     for (let i = 0; i < maxLength; i++) {
@@ -187,6 +213,10 @@ const SimpleReact = (function() {
           element.className = newProps[name];
         } else if (name === 'id') {
           element.id = newProps[name];
+        } else if (name === 'value' && element.tagName === 'INPUT') {
+          element.value = newProps[name];  // Update value directly
+        } else if (name === 'checked' && element.tagName === 'INPUT') {
+          element.checked = newProps[name];  // Update checked state
         } else {
           element.setAttribute(name, newProps[name]);
         }
@@ -218,7 +248,46 @@ const SimpleReact = (function() {
     currentVTree = newVTree;
   }
 
-  return { useState, useEffect, jsx, createElement, render };
+  //------------------------------------------------------------
+
+  // Simple Router
+  let currentRoute = window.location.hash || '#/';
+  let routeCallbacks = [];
+
+  function useRouter() {
+    const [route, setRoute] = useState(currentRoute);
+
+    useEffect(() => {
+      function handleHashChange() {
+        const newRoute = window.location.hash || '#/';
+        currentRoute = newRoute;
+        setRoute(newRoute);
+        // Notify all route callbacks
+        routeCallbacks.forEach(callback => callback(newRoute));
+      }
+
+      window.addEventListener('hashchange', handleHashChange);
+      
+      return () => {
+        window.removeEventListener('hashchange', handleHashChange);
+      };
+    }, []);
+
+    function navigate(path) {
+      window.location.hash = path;
+    }
+
+    function getParams() {
+      const hash = currentRoute.replace('#/', '');
+      return hash || 'all';
+    }
+
+    return { route, navigate, getParams };
+  }
+
+  //------------------------------------------------------------
+
+  return { useState, useEffect, jsx, createElement, render, useRouter };
 })();
 
-const { useState, useEffect, jsx,createElement, render } = SimpleReact;
+const { useState, useEffect, jsx,createElement, render, useRouter } = SimpleReact;

@@ -1,46 +1,187 @@
-function TodoItem({ todo, toggleTodo }) {
-  return jsx(
-    'li',
-    { className: `todo-item ${todo.completed ? 'completed' : ''}`, onclick: () => toggleTodo(todo.id) },
-    todo.text
-  );
+function TodoItem({ todo, toggleTodo, deleteTodo }) {
+  return jsx('li', {
+    className: `todo-item ${todo.completed ? 'completed' : ''}`
+  }, [
+    jsx('div', { className: 'view' }, [
+      jsx('input', {
+        type: 'checkbox',
+        className: 'toggle',
+        checked: todo.completed,
+        onchange: () => toggleTodo(todo.id)
+      }),
+      jsx('label', { className: 'label' }, todo.text),
+      jsx('button', {
+        className: 'destroy',
+        onclick: () => deleteTodo(todo.id)
+      }, )
+    ])
+  ]);
 }
 
 function TodoApp() {
+  // Simple initialization first
   const [todos, setTodos] = useState([]);
-  const [newTodo, setNewTodo] = useState('');
+  const [input, setInput] = useState('');
+  
+  // Use router instead of filter state
+  const { route, navigate, getParams } = useRouter();
+  const filter = getParams(); // Get current filter from URL
+
+  // Load from localStorage on first render using useEffect
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('todos');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setTodos(parsed);
+        }
+      }
+    } catch (e) {
+      console.error('Error loading todos:', e);
+    }
+  }, []);
+
+  function saveTodos(newTodos) {
+    try {
+      if (Array.isArray(newTodos)) {
+        localStorage.setItem('todos', JSON.stringify(newTodos));
+        setTodos(newTodos);
+      } else {
+        console.error('saveTodos: newTodos is not an array', newTodos);
+        setTodos([]);
+      }
+    } catch (e) {
+      console.error('Error saving todos:', e);
+      setTodos(newTodos);
+    }
+  }
 
   function addTodo() {
-    setTodos([...todos, { id: Date.now(), text: newTodo, completed: false }]);
-    setNewTodo('');
+    if (!input.trim()) return;
+    
+    const newTodo = {
+      id: Date.now(),
+      text: input.trim(),
+      completed: false
+    };
+    
+    const newTodos = [...todos, newTodo];
+    saveTodos(newTodos);
+    setInput('');
   }
 
   function toggleTodo(id) {
-    setTodos(todos.map(todo => todo.id === id ? { ...todo, completed: !todo.completed } : todo));
+    const updated = todos.map(todo => 
+      todo.id === id ? { ...todo, completed: !todo.completed } : todo
+    );
+    saveTodos(updated);
   }
 
-  return jsx(
-    'div',
-    { className: 'todo-app' },
-    jsx('h1', { className: 'header' }, 'SimpleReact Todo App'),
-    jsx('input', {
-      className: 'new-todo' ,
-      type: 'text',
-      value: newTodo,
-      oninput: (e) => setNewTodo(e.target.value),
-      placeholder: 'Add a new todo'
-    }),
-    jsx('button', { className: 'add-todo', onclick: addTodo }, 'Add Todo'),
-    jsx(
-      'ul',
-      { className: 'todo-list' },
-      todos.map(todo => jsx(TodoItem, { key: todo.id, todo, toggleTodo }))
-    )
-  );
+  function deleteTodo(id) {
+    const filtered = todos.filter(todo => todo.id !== id);
+    saveTodos(filtered);
+  }
+
+  function clearCompleted() {
+    const filtered = todos.filter(todo => !todo.completed);
+    saveTodos(filtered);
+  }
+
+  function toggleAll() {
+    const allCompleted = todos.every(todo => todo.completed);
+    const updated = todos.map(todo => ({ ...todo, completed: !allCompleted }));
+    saveTodos(updated);
+  }
+
+  // Filter todos based on current filter (with safety check)
+  const filteredTodos = Array.isArray(todos) ? todos.filter(todo => {
+    if (filter === 'active') return !todo.completed;
+    if (filter === 'completed') return todo.completed;
+    return true; // 'all'
+  }) : [];
+
+  const activeTodosCount = Array.isArray(todos) ? todos.filter(todo => !todo.completed).length : 0;
+  const hasCompletedTodos = Array.isArray(todos) ? todos.some(todo => todo.completed) : false;
+
+  return jsx('section', { className: 'todoapp' }, [
+    // Header
+    jsx('header', { className: 'header' }, [
+      jsx('h1', {}, 'todos'),
+      jsx('div', { className: 'input-container' }, [
+        jsx('input', {
+          className: 'new-todo',
+          type: 'text',
+          value: input,
+          placeholder: 'What needs to be done?',
+          oninput: (e) => setInput(e.target.value),
+          onkeydown: (e) => {
+            if (e.key === 'Enter') addTodo();
+          }
+        })
+      ])
+    ]),
+
+    // Main
+    jsx('main', { className: 'main' }, [
+      // Toggle all (only show if there are todos)
+      (Array.isArray(todos) && todos.length > 0) ? jsx('div', { className: 'toggle-all-container' }, [
+        jsx('input', {
+          className: 'toggle-all',
+          type: 'checkbox',
+          id: 'toggle-all',
+          checked: todos.length > 0 && todos.every(todo => todo.completed),
+          onchange: toggleAll
+        }),
+        jsx('label', { className: 'toggle-all-label', for: 'toggle-all' })
+      ]) : null,
+
+      // Todo list
+      jsx('ul', { className: 'todo-list' },
+        filteredTodos.map(todo => jsx(TodoItem, { 
+          key: todo.id, 
+          todo, 
+          toggleTodo, 
+          deleteTodo 
+        }))
+      )
+    ]),
+
+    // Footer (only show if there are todos)
+    (Array.isArray(todos) && todos.length > 0) ? jsx('footer', { className: 'footer' }, [
+      jsx('span', { className: 'todo-count' },
+        jsx('span', {}, `${activeTodosCount} item${activeTodosCount !== 1 ? 's' : ''} left`)
+      ),
+
+      jsx('ul', { className: 'filters' }, [
+        jsx('li', { 
+          className: filter === 'all' ? 'selected' : '',
+          onclick: () => navigate('#/all')
+        }, jsx('a', { href: '#/all' }, 'All')),
+        
+        jsx('li', { 
+          className: filter === 'active' ? 'selected' : '',
+          onclick: () => navigate('#/active')
+        }, jsx('a', { href: '#/active' }, 'Active')),
+        
+        jsx('li', { 
+          className: filter === 'completed' ? 'selected' : '',
+          onclick: () => navigate('#/completed')
+        }, jsx('a', { href: '#/completed' }, 'Completed'))
+      ]),
+
+      hasCompletedTodos ? jsx('div', { className: 'clear-completed' },
+        jsx('button', {
+          className: 'clear-completed',
+          onclick: clearCompleted
+        }, 'Clear completed')
+      ) : null
+    ]) : null
+  ]);
 }
 
 function App() {
-  return jsx('div', null, jsx(TodoApp, null));
+  return jsx('div', { id: 'root' }, jsx(TodoApp));
 }
 
 // Initial render
