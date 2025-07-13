@@ -13,17 +13,18 @@ const SimpleReact = (function() {
     states[currentIndex] = states[currentIndex] !== undefined ? states[currentIndex] : initialValue;
 
     function setState(newValue) {
-      
-        if (states[currentIndex] !== newValue && !isRendering) {
-          states[currentIndex] = newValue;
+      const nextValue = typeof newValue === 'function' ? newValue(states[currentIndex]) : newValue;
+      if (!Object.is(states[currentIndex], nextValue)) {
+        states[currentIndex] = nextValue;
+        if (!isRendering) {
           render();
         }
       }
+    }
 
-        stateIndex++;
-
-        return [states[currentIndex], setState];
-      }
+    stateIndex++;
+    return [states[currentIndex], setState];
+  }
 
     //------------------------------------------------------------
 
