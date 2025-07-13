@@ -6,23 +6,24 @@ const SimpleReact = (function() {
 
   let states = [];
   let stateIndex = 0;
-  let isRendering = false;
+  let isRendering = false; // Prevent recursive renders
 
   function useState(initialValue) {
     const currentIndex = stateIndex;
     states[currentIndex] = states[currentIndex] !== undefined ? states[currentIndex] : initialValue;
- function setState(newValue) {
-  
-    if (states[currentIndex] !== newValue && !isRendering) {
-      states[currentIndex] = newValue;
-      render();
-    }
-  }
 
-    stateIndex++;
+    function setState(newValue) {
+      
+        if (states[currentIndex] !== newValue && !isRendering) {
+          states[currentIndex] = newValue;
+          render();
+        }
+      }
 
-    return [states[currentIndex], setState];
-  }
+        stateIndex++;
+
+        return [states[currentIndex], setState];
+      }
 
     //------------------------------------------------------------
 
@@ -84,9 +85,9 @@ const SimpleReact = (function() {
       } else if (name === 'id') {
         element.id = value;
       } else if (name === 'value' && element.tagName === 'INPUT') {
-      element.value = value;  // Direct property assignment
+        element.value = value;  
       } else if (name === 'checked' && element.tagName === 'INPUT') {
-      element.checked = value;  // For checkboxes
+        element.checked = value;   
       } else {
         element.setAttribute(name, value);
       }
@@ -150,7 +151,8 @@ const SimpleReact = (function() {
       return newElement;
     }
     
-    updateProps(element, oldNode.props, newNode.props);
+    // Update props before children to ensure event handlers are properly set
+    updateProps(element, oldNode.props || {}, newNode.props || {});
     
     // Filter out falsy values from children
     const oldChildren = oldNode.children.flat().filter(child => 
@@ -159,23 +161,23 @@ const SimpleReact = (function() {
     const newChildren = newNode.children.flat().filter(child => 
       child !== null && child !== undefined && child !== false && child !== true
     );
-    const maxLength = Math.max(oldChildren.length, newChildren.length);
     
-    for (let i = 0; i < maxLength; i++) {
-      const oldChild = oldChildren[i];
+    // Remove extra children first
+    while (element.childNodes.length > newChildren.length) {
+      element.removeChild(element.lastChild);
+    }
+    
+    // Update or add children
+    for (let i = 0; i < newChildren.length; i++) {
       const newChild = newChildren[i];
-      const childElement = element.childNodes[i];
+      const oldChild = oldChildren[i];
       
-      if (!newChild) {
-        if (childElement) {
-          childElement.remove();
-        }
-      } else if (!oldChild) {
+      if (i >= element.childNodes.length) {
+        // Add new child
         element.appendChild(createElement(newChild));
       } else {
-        if (childElement) {
-          diff(oldChild, newChild, childElement);
-        }
+        // Update existing child
+        diff(oldChild, newChild, element.childNodes[i]);
       }
     }
     
@@ -228,7 +230,34 @@ const SimpleReact = (function() {
   }
 
 
-  //routerr
+    //------------------------------------------------------------
+
+
+    
+
+  function render() {
+    isRendering = true; // Set rendering flag
+    stateIndex = 0;
+    effectIndex = 0;
+    const root = document.getElementById('root');
+    const newVTree = App();
+    
+    if (!currentVTree) {
+      // First render
+      root.innerHTML = '';
+      root.appendChild(createElement(newVTree));
+    } else {
+      // Use diffing for updates
+      diff(currentVTree, newVTree, root.firstChild);
+    }
+    
+    currentVTree = newVTree;
+    isRendering = false; // Reset rendering flag
+  }
+
+  //------------------------------------------------------------
+
+  // Simple Router
   let currentRoute = window.location.hash || '#/';
   let routeCallbacks = [];
 
@@ -262,37 +291,10 @@ const SimpleReact = (function() {
 
     return { route, navigate, getParams };
   }
-  
-    //------------------------------------------------------------
-
-
-    
-
-  function render() {
-    isRendering = true;
-    stateIndex = 0;
-    effectIndex = 0;
-    const root = document.getElementById('root');
-    const newVTree = App();
-    
-    if (!currentVTree) {
-      // First render
-      root.innerHTML = '';
-      root.appendChild(createElement(newVTree));
-    } else {
-      // Use diffing for updates
-      diff(currentVTree, newVTree, root.firstChild);
-    }
-    
-    currentVTree = newVTree;
-    isRendering = false;
-  }
-
-
 
   //------------------------------------------------------------
 
-  return { useState, useEffect, jsx, createElement, render , useRouter  };
+  return { useState, useEffect, jsx, createElement, render, useRouter };
 })();
 
-const { useState, useEffect, jsx,createElement, render,useRouter } = SimpleReact;
+const { useState, useEffect, jsx,createElement, render, useRouter } = SimpleReact;
