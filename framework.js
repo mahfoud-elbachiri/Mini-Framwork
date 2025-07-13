@@ -1,7 +1,11 @@
 const SimpleReact = (function() {
+  
+  let currentVTree = null; // Store the current virtual DOM
+
+  //------------------------------------------------------------
+
   let states = [];
   let stateIndex = 0;
-  let currentVTree = null; // Store the current virtual DOM tree
 
   function useState(initialValue) {
     const currentIndex = stateIndex;
@@ -16,6 +20,9 @@ const SimpleReact = (function() {
 
     return [states[currentIndex], setState];
   }
+
+    //------------------------------------------------------------
+
 
   let effects = [];
   let effectIndex = 0;
@@ -36,12 +43,23 @@ const SimpleReact = (function() {
     effectIndex++;
   }
 
+
+    //------------------------------------------------------------
+
+
+
   function jsx(tag, props, ...children) {
     if (typeof tag === 'function') {
       return tag({ ...props, children });
     }
     return { tag, props: props || {}, children };
   }
+
+
+    //------------------------------------------------------------
+
+
+
 
   function createElement(node) {
     if (typeof node === 'string' || typeof node === 'number') {
@@ -72,9 +90,15 @@ const SimpleReact = (function() {
     return element;
   }
 
+
+    //------------------------------------------------------------
+
+
+
+
   // virtual DOM diffing
   function diff(oldNode, newNode, element) {
-    // If one node doesn't exist, replace entirely
+
     if (!oldNode) {
       return createElement(newNode);
     }
@@ -83,7 +107,6 @@ const SimpleReact = (function() {
       return null;
     }
     
-    // If nodes are text and different, update text
     if (typeof oldNode === 'string' || typeof oldNode === 'number') {
       if (typeof newNode === 'string' || typeof newNode === 'number') {
         if (oldNode !== newNode) {
@@ -91,24 +114,20 @@ const SimpleReact = (function() {
         }
         return element;
       } else {
-        // Replace text with element
         const newElement = createElement(newNode);
         element.parentNode.replaceChild(newElement, element);
         return newElement;
       }
     }
     
-    // If tag names are different, replace entirely
     if (oldNode.tag !== newNode.tag) {
       const newElement = createElement(newNode);
       element.parentNode.replaceChild(newElement, element);
       return newElement;
     }
     
-    // Update props
     updateProps(element, oldNode.props, newNode.props);
     
-    // Diff children
     const oldChildren = oldNode.children.flat();
     const newChildren = newNode.children.flat();
     const maxLength = Math.max(oldChildren.length, newChildren.length);
@@ -119,15 +138,12 @@ const SimpleReact = (function() {
       const childElement = element.childNodes[i];
       
       if (!newChild) {
-        // Remove extra old children
         if (childElement) {
           childElement.remove();
         }
       } else if (!oldChild) {
-        // Add new children
         element.appendChild(createElement(newChild));
       } else {
-        // Diff existing children
         if (childElement) {
           diff(oldChild, newChild, childElement);
         }
@@ -136,10 +152,16 @@ const SimpleReact = (function() {
     
     return element;
   }
+
+
+
+    //------------------------------------------------------------
+
+
+
+
   
-  // Update element properties
   function updateProps(element, oldProps, newProps) {
-    // Remove old props that don't exist in new props
     for (let name in oldProps) {
       if (!(name in newProps)) {
         if (name.startsWith('on')) {
@@ -154,7 +176,6 @@ const SimpleReact = (function() {
       }
     }
     
-    // Add or update new props
     for (let name in newProps) {
       if (oldProps[name] !== newProps[name]) {
         if (name.startsWith('on') && typeof newProps[name] === 'function') {
@@ -172,6 +193,12 @@ const SimpleReact = (function() {
       }
     }
   }
+
+
+    //------------------------------------------------------------
+
+
+    
 
   function render() {
     stateIndex = 0;
