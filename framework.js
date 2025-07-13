@@ -12,6 +12,7 @@ const SimpleReact = (function() {
     const currentIndex = stateIndex;
     states[currentIndex] = states[currentIndex] !== undefined ? states[currentIndex] : initialValue;
  function setState(newValue) {
+  
     if (states[currentIndex] !== newValue && !isRendering) {
       states[currentIndex] = newValue;
       render();
@@ -227,6 +228,41 @@ const SimpleReact = (function() {
   }
 
 
+  //routerr
+  let currentRoute = window.location.hash || '#/';
+  let routeCallbacks = [];
+
+  function useRouter() {
+    const [route, setRoute] = useState(currentRoute);
+
+    useEffect(() => {
+      function handleHashChange() {
+        const newRoute = window.location.hash || '#/';
+        currentRoute = newRoute;
+        setRoute(newRoute);
+        // Notify all route callbacks
+        routeCallbacks.forEach(callback => callback(newRoute));
+      }
+
+      window.addEventListener('hashchange', handleHashChange);
+      
+      return () => {
+        window.removeEventListener('hashchange', handleHashChange);
+      };
+    }, []);
+
+    function navigate(path) {
+      window.location.hash = path;
+    }
+
+    function getParams() {
+      const hash = currentRoute.replace('#/', '');
+      return hash || 'all';
+    }
+
+    return { route, navigate, getParams };
+  }
+  
     //------------------------------------------------------------
 
 
@@ -252,11 +288,11 @@ const SimpleReact = (function() {
     isRendering = false;
   }
 
-  
+
 
   //------------------------------------------------------------
 
-  return { useState, useEffect, jsx, createElement, render  };
+  return { useState, useEffect, jsx, createElement, render , useRouter  };
 })();
 
-const { useState, useEffect, jsx,createElement, render } = SimpleReact;
+const { useState, useEffect, jsx,createElement, render,useRouter } = SimpleReact;
