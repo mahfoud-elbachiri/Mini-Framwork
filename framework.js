@@ -6,15 +6,17 @@ const SimpleReact = (function() {
 
   let states = [];
   let stateIndex = 0;
+  let isRendering = false;
 
   function useState(initialValue) {
     const currentIndex = stateIndex;
     states[currentIndex] = states[currentIndex] !== undefined ? states[currentIndex] : initialValue;
-
-    function setState(newValue) {
+ function setState(newValue) {
+    if (states[currentIndex] !== newValue && !isRendering) {
       states[currentIndex] = newValue;
       render();
     }
+  }
 
     stateIndex++;
 
@@ -231,6 +233,7 @@ const SimpleReact = (function() {
     
 
   function render() {
+    isRendering = true;
     stateIndex = 0;
     effectIndex = 0;
     const root = document.getElementById('root');
@@ -246,48 +249,14 @@ const SimpleReact = (function() {
     }
     
     currentVTree = newVTree;
+    isRendering = false;
   }
+
+  
 
   //------------------------------------------------------------
 
-  // Simple Router
-  let currentRoute = window.location.hash || '#/';
-  let routeCallbacks = [];
-
-  function useRouter() {
-    const [route, setRoute] = useState(currentRoute);
-
-    useEffect(() => {
-      function handleHashChange() {
-        const newRoute = window.location.hash || '#/';
-        currentRoute = newRoute;
-        setRoute(newRoute);
-        // Notify all route callbacks
-        routeCallbacks.forEach(callback => callback(newRoute));
-      }
-
-      window.addEventListener('hashchange', handleHashChange);
-      
-      return () => {
-        window.removeEventListener('hashchange', handleHashChange);
-      };
-    }, []);
-
-    function navigate(path) {
-      window.location.hash = path;
-    }
-
-    function getParams() {
-      const hash = currentRoute.replace('#/', '');
-      return hash || 'all';
-    }
-
-    return { route, navigate, getParams };
-  }
-
-  //------------------------------------------------------------
-
-  return { useState, useEffect, jsx, createElement, render, useRouter };
+  return { useState, useEffect, jsx, createElement, render  };
 })();
 
-const { useState, useEffect, jsx,createElement, render, useRouter } = SimpleReact;
+const { useState, useEffect, jsx,createElement, render } = SimpleReact;
