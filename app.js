@@ -1,21 +1,22 @@
 function TodoItem({ todo, toggleTodo, deleteTodo }) {
-  return jsx('li', {}, [
-    jsx('input', {
-      type: 'checkbox',
-      className: 'toggle',
-      checked: todo.completed,
-      onchange: () => toggleTodo(todo.id)
-    }),
+  return jsx('li', {
+    className: `todo-item ${todo.completed ? 'completed' : ''}`
+  }, [
     jsx('div', { className: 'view' }, [
-      jsx('label', {}, todo.text),
+      jsx('input', {
+        type: 'checkbox',
+        className: 'toggle',
+        checked: todo.completed,
+        onchange: () => toggleTodo(todo.id)
+      }),
+      jsx('label', { className: 'label' }, todo.text),
       jsx('button', {
         className: 'destroy',
         onclick: () => deleteTodo(todo.id)
-      })
+      }, )
     ])
   ]);
 }
-
 function TodoApp() {
   // Simple initialization without localStorage
   const [todos, setTodos] = useState([]);
