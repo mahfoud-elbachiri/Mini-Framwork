@@ -196,7 +196,22 @@ function TodoApp() {
 }
 
 function App() {
-  return jsx('div', { id: 'root' }, jsx(TodoApp));
+  const { getParams } = useRouter();
+  const route = getParams();
+  
+  // Handle empty route - redirect to 'all'
+  if (!route) {
+    window.location.hash = '#/all';
+    return null;
+  }
+
+  // Show TodoApp for valid routes
+  if (['all', 'active', 'completed'].includes(route)) {
+    return jsx('div', { id: 'root' }, jsx(TodoApp));
+  }
+  
+  // Show NotFound for any other route (including /notfound)
+  return jsx('div', { id: 'root' }, jsx(NotFound));
 }
 
 // Initial render

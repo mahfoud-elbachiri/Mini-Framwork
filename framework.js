@@ -257,45 +257,45 @@ const SimpleReact = (function() {
   }
 
   //------------------------------------------------------------
-
-  // Simple Router
-  let currentRoute = window.location.hash || '#/';
-  let routeCallbacks = [];
-
-  function useRouter() {
-    const [route, setRoute] = useState(currentRoute);
-
-    useEffect(() => {
-      function handleHashChange() {
-        const newRoute = window.location.hash || '#/';
-        currentRoute = newRoute;
-        setRoute(newRoute);
-        // Notify all route callbacks
-        routeCallbacks.forEach(callback => callback(newRoute));
-      }
-
-      window.addEventListener('hashchange', handleHashChange);
-      
-      return () => {
-        window.removeEventListener('hashchange', handleHashChange);
-      };
-    }, []);
-
-    function navigate(path) {
-      window.location.hash = path;
-    }
-
-    function getParams() {
-      const hash = currentRoute.replace('#/', '');
-      return hash || 'all';
-    }
-
-    return { route, navigate, getParams };
-  }
-
-  //------------------------------------------------------------
-
-  return { useState, useEffect, jsx, createElement, render, useRouter };
-})();
-
-const { useState, useEffect, jsx,createElement, render, useRouter } = SimpleReact;
+   // Simple Router
+   let currentRoute = window.location.hash || '#/';
+   let routeCallbacks = [];
+ 
+   function useRouter() {
+     const [route, setRoute] = useState(currentRoute);
+ 
+     useEffect(() => {
+       function handleHashChange() {
+         const newRoute = window.location.hash || '#/';
+         currentRoute = newRoute;
+         setRoute(newRoute);
+         // Notify all route callbacks
+         routeCallbacks.forEach(callback => callback(newRoute));
+       }
+ 
+       window.addEventListener('hashchange', handleHashChange);
+       
+       return () => {
+         window.removeEventListener('hashchange', handleHashChange);
+       };
+     }, []);
+ 
+     function navigate(path) {
+       window.location.hash = path;
+     }
+ 
+     function getParams() {
+       const hash = currentRoute.replace('#/', '');
+       // Return the raw hash value without defaulting to 'all'
+       return hash;
+     }
+ 
+     return { route, navigate, getParams };
+   }
+ 
+   //------------------------------------------------------------
+ 
+   return { useState, useEffect, jsx, createElement, render, useRouter };
+ })();
+ 
+ const { useState, useEffect, jsx,createElement, render, useRouter } = SimpleReact;
