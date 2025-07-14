@@ -1,30 +1,48 @@
+function blurActiveElement() {
+  if (document.activeElement && typeof document.activeElement.blur === 'function') {
+    document.activeElement.blur();
+  }
+}
+
+
 function TodoItem({ todo, toggleTodo, deleteTodo }) {
+   const toggleClass = `toggle${todo.completed ? ' checked' : ''}`;
   return jsx('li', {
     className: `todo-item ${todo.completed ? 'completed' : ''}`
   }, [
     jsx('div', { className: 'view' }, [
       jsx('input', {
         type: 'checkbox',
-        className: 'toggle',
+        className: toggleClass,
         checked: todo.completed,
-        onchange: () => toggleTodo(todo.id)
+        onchange: () => { toggleTodo(todo.id); blurActiveElement(); }
       }),
       jsx('label', { className: 'label' }, todo.text),
       jsx('button', {
         className: 'destroy',
-        onclick: () => deleteTodo(todo.id)
+        onclick: () => { deleteTodo(todo.id); blurActiveElement(); }
       }, )
     ])
   ]);
 }
+
 function TodoApp() {
-  // Simple initialization without localStorage
+  // Simple initialization first
   const [todos, setTodos] = useState([]);
   const [input, setInput] = useState('');
   
   // Use router instead of filter state
   const { route, navigate, getParams } = useRouter();
   const filter = getParams(); // Get current filter from URL
+
+  function saveTodos(newTodos) {
+    if (Array.isArray(newTodos)) {
+      setTodos(newTodos);
+    } else {
+      console.error('saveTodos: newTodos is not an array', newTodos);
+      setTodos([]);
+    }
+  }
 
   function addTodo() {
     if (!input.trim()) return;
@@ -35,7 +53,8 @@ function TodoApp() {
       completed: false
     };
     
-    setTodos([...todos, newTodo]);
+    const newTodos = [...todos, newTodo];
+    saveTodos(newTodos);
     setInput('');
   }
 
@@ -45,23 +64,26 @@ function TodoApp() {
         ? { ...todo, completed: !todo.completed }
         : todo
     );
-    setTodos(updated);
+    // Ensure we're not triggering unnecessary updates
+    if (JSON.stringify(todos) !== JSON.stringify(updated)) {
+      saveTodos(updated);
+    }
   }
 
   function deleteTodo(id) {
     const filtered = todos.filter(todo => todo.id !== id);
-    setTodos(filtered);
+    saveTodos(filtered);
   }
 
   function clearCompleted() {
     const filtered = todos.filter(todo => !todo.completed);
-    setTodos(filtered);
+    saveTodos(filtered);
   }
 
   function toggleAll() {
     const allCompleted = todos.every(todo => todo.completed);
     const updated = todos.map(todo => ({ ...todo, completed: !allCompleted }));
-    setTodos(updated);
+    saveTodos(updated);
   }
 
   // Filter todos based on current filter (with safety check)
@@ -101,9 +123,32 @@ function TodoApp() {
           type: 'checkbox',
           id: 'toggle-all',
           checked: todos.length > 0 && todos.every(todo => todo.completed),
-          onchange: toggleAll
+          onchange: (e) => {
+            if (
+              (filter === 'completed' && todos.some(todo => todo.completed)) ||
+              (filter === 'active' && todos.some(todo => !todo.completed)) ||
+              filter === 'all'
+            ) {
+              toggleAll();
+            }
+          },
+          disabled: (
+            (filter === 'completed' && !todos.some(todo => todo.completed)) ||
+            (filter === 'active' && !todos.some(todo => !todo.completed))
+          )
         }),
-        jsx('label', { className: 'toggle-all-label', for: 'toggle-all' })
+        jsx('label', { className: 'toggle-all-label', for: 'toggle-all',
+          onclick: (e) => {
+            // Only allow toggleAll if there is something to toggle in this filter
+            if (
+              (filter === 'completed' && todos.some(todo => todo.completed)) ||
+              (filter === 'active' && todos.some(todo => !todo.completed)) ||
+              filter === 'all'
+            ) {
+              toggleAll();
+            }
+          }
+        })
       ]) : null,
 
       // Todo list
@@ -151,22 +196,7 @@ function TodoApp() {
 }
 
 function App() {
-  const { getParams } = useRouter();
-  const route = getParams();
-  
-  // Handle empty route - redirect to 'all'
-  if (!route) {
-    window.location.hash = '#/all';
-    return null;
-  }
-
-  // Show TodoApp for valid routes
-  if (['all', 'active', 'completed'].includes(route)) {
-    return jsx('div', { id: 'root' }, jsx(TodoApp));
-  }
-  
-  // Show NotFound for any other route (including /notfound)
-  return jsx('div', { id: 'root' }, jsx(NotFound));
+  return jsx('div', { id: 'root' }, jsx(TodoApp));
 }
 
 // Initial render
