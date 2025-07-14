@@ -287,7 +287,8 @@ const SimpleReact = (function() {
 
     function getParams() {
       const hash = currentRoute.replace('#/', '');
-      return hash || 'all';
+      // Return the raw hash value without defaulting to 'all'
+      return hash;
     }
 
     return { route, navigate, getParams };

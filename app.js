@@ -153,12 +153,18 @@ function App() {
   const { getParams } = useRouter();
   const route = getParams();
   
-  // Only show TodoApp for valid routes
+  // Handle empty route - redirect to 'all'
+  if (!route) {
+    window.location.hash = '#/all';
+    return null;
+  }
+
+  // Show TodoApp for valid routes
   if (['all', 'active', 'completed'].includes(route)) {
     return jsx('div', { id: 'root' }, jsx(TodoApp));
   }
   
-  // Show NotFound for invalid routes
+  // Show NotFound for any other route (including /notfound)
   return jsx('div', { id: 'root' }, jsx(NotFound));
 }
 
