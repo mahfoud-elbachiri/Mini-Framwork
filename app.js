@@ -5,10 +5,31 @@ function blurActiveElement() {
 }
 
 
-function TodoItem({ todo, toggleTodo, deleteTodo }) {
-   const toggleClass = `toggle${todo.completed ? ' checked' : ''}`;
+function TodoItem({ todo, toggleTodo, deleteTodo, updateTodo }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(todo.text);
+
+  function handleDoubleClick() {
+    setIsEditing(true);
+    setEditText(todo.text);
+  }
+
+  function handleSubmit() {
+    const trimmedText = editText.trim();
+    if (trimmedText) {
+      updateTodo(todo.id, trimmedText);
+    }
+    setIsEditing(false);
+  }
+
+  function handleBlur() {
+    setIsEditing(false);
+    setEditText(todo.text); // Reset to original text
+  }
+
+  const toggleClass = `toggle${todo.completed ? ' checked' : ''}`;
   return jsx('li', {
-    className: `todo-item ${todo.completed ? 'completed' : ''}`
+    className: `todo-item ${todo.completed ? 'completed' : ''} ${isEditing ? 'editing' : ''}`
   }, [
     jsx('div', { className: 'view' }, [
       jsx('input', {
@@ -17,12 +38,29 @@ function TodoItem({ todo, toggleTodo, deleteTodo }) {
         checked: todo.completed,
         onchange: () => { toggleTodo(todo.id); blurActiveElement(); }
       }),
-      jsx('label', { className: 'label' }, todo.text),
+      jsx('label', { 
+        className: 'label',
+        ondblclick: handleDoubleClick 
+      }, todo.text),
       jsx('button', {
         className: 'destroy',
         onclick: () => { deleteTodo(todo.id); blurActiveElement(); }
-      }, )
-    ])
+      })
+    ]),
+    isEditing && jsx('input', {
+      className: 'edit',
+      type: 'text',
+      value: editText,
+      oninput: (e) => setEditText(e.target.value),
+      onblur: handleBlur,
+      onkeydown: (e) => {
+        if (e.key === 'Enter') {
+          handleSubmit();
+        } else if (e.key === 'Escape') {
+          handleBlur();
+        }
+      }
+    })
   ]);
 }
 
@@ -56,6 +94,15 @@ function TodoApp() {
     const newTodos = [...todos, newTodo];
     saveTodos(newTodos);
     setInput('');
+  }
+
+  function updateTodo(id, newText) {
+    const updated = todos.map(todo => 
+      todo.id === id 
+        ? { ...todo, text: newText }
+        : todo
+    );
+    saveTodos(updated);
   }
 
   function toggleTodo(id) {
@@ -157,7 +204,8 @@ function TodoApp() {
           key: todo.id, 
           todo, 
           toggleTodo, 
-          deleteTodo 
+          deleteTodo,
+          updateTodo 
         }))
       )
     ]),
@@ -207,7 +255,10 @@ function App() {
 
   // Show TodoApp for valid routes
   if (['all', 'active', 'completed'].includes(route)) {
-    return jsx('div', { id: 'root' }, jsx(TodoApp));
+    return jsx('div', { id: 'root' }, [
+      jsx(InfoAside),
+      jsx(TodoApp)
+    ]);
   }
   
   // Show NotFound for any other route (including /notfound)
