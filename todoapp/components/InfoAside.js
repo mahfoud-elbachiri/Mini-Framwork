@@ -1,9 +1,10 @@
+import { jsx } from '../../framework/index.js';
+
 function Quote({ text, author }) {
   return jsx('div', { className: 'quote' }, [
     jsx('p', {}, text),
     jsx('footer', {})
   ]);
-  
 }
 
 function InfoAside() {
@@ -29,4 +30,6 @@ function InfoAside() {
       ])
     ])
   ]);
-} 
+}
+
+export { InfoAside }; 

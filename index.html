@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Simple React-like Framework</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="todoapp/styles/styles.css">
   <script>
     // If not on root or index.html, redirect to hash route
     if (!['/', '/index.html'].includes(window.location.pathname)) {
@@ -13,10 +13,16 @@
   </script>
 </head>
 <body>
-  <div id="root"></div>
-  <script src="notfound.js"></script>
-  <script src="framework.js"></script>
-  <script src="aside.js"></script>
-  <script src="app.js"></script>
+  
+  <script type="module">
+    import { render } from './framework/index.js';
+    import { App } from './todoapp/app.js';
+    
+    // Make App available globally for the framework
+    window.App = App;
+    
+    // Initial render
+    render();
+  </script>
 </body>
 </html>

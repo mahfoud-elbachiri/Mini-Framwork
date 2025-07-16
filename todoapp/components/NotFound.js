@@ -1,3 +1,5 @@
+import { jsx, useRouter } from '../../framework/index.js';
+
 function NotFound() {
   const { navigate } = useRouter();
 
@@ -14,5 +16,4 @@ function NotFound() {
   ]);
 }
 
-// Export for use in other files
-window.NotFound = NotFound; 
+export { NotFound }; 
